@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import GPSData from "../components/Gps";
@@ -29,7 +30,7 @@ const Home2 = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [status, setStatus] = useState("loading"); // Status: loading, operational, empty, down
   const [ipAddress, setIpAddress] = useState(
-    () => localStorage.getItem("esp32_ip") || "192.168.1.15"
+    () => localStorage.getItem("esp32_ip") || "192.168.0.1"
   );
 
   useEffect(() => {
@@ -89,17 +90,19 @@ const Home2 = () => {
         className="flex-1 flex flex-col overflow-hidden p-4"
         style={perspectiveStyle}
       >
-        <section
-          className={`${bgColor} p-6 text-center text-xl font-bold ${textColor} shadow-xl mb-6 rounded-2xl transform transition-transform duration-500 hover:rotate-y-2 hover:shadow-2xl animate-fadeIn`}
-        >
-          {status === "loading"
-            ? "Loading system status..."
-            : status === "down"
-            ? "⚠️ System Down. Unable to Fetch Data."
-            : status === "empty"
-            ? "☑️ System Operational. No SOS Recieved Yet"
-            : "✅ System Operational. GPS tracking active."}
-        </section>
+        <a href={`http://${ipAddress}/data`} target="_blank" rel="noopener noreferrer">
+          <section
+            className={`${bgColor} p-6 text-center text-xl font-bold ${textColor} shadow-xl mb-6 rounded-2xl transform transition-transform duration-500 hover:scale-102 hover:shadow-2xl animate-fadeIn`}
+          >
+            {status === "loading"
+              ? "Loading system status..."
+              : status === "down"
+              ? "⚠️ System Down. Unable to Fetch Data."
+              : status === "empty"
+              ? "☑️ System Operational. No SOS Recieved Yet"
+              : "✅ System Operational. GPS tracking active."}
+          </section>
+        </a>
 
         <div className="flex flex-1 overflow-hidden gap-4">
           <section className="flex-1 flex flex-col space-y-6 overflow-auto">
@@ -135,7 +138,7 @@ const Home2 = () => {
               {gps.latitude && gps.longitude ? (
                 <Map latitude={gps.latitude} longitude={gps.longitude} />
               ) : (
-                <div className="h-full flex items-center justify-center text-red-500 text-xl">
+                <div className="h-full flex items-center justify-center text-black text-xl">
                   Waiting for GPS data...
                 </div>
               )}

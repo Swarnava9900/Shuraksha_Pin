@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const GPSData = ({ setGps, setUserId, ipAddress, setConnectedUsers, setStatus }) => {
+const GPSData = ({
+  setGps,
+  setUserId,
+  ipAddress,
+  setConnectedUsers,
+  setStatus,
+}) => {
   const [gpsData, setGpsData] = useState({
     latitude: null,
     longitude: null,
@@ -15,27 +21,44 @@ const GPSData = ({ setGps, setUserId, ipAddress, setConnectedUsers, setStatus })
         const packets = res.data;
 
         if (Array.isArray(packets) && packets.length > 0) {
-          const latest = packets[packets.length - 1];
-          const { latitude, longitude, unique_id } = latest;
+          const validPackets = packets.filter(
+            (p) =>
+              p &&
+              typeof p.latitude === "string" &&
+              typeof p.longitude === "string" &&
+              !isNaN(parseFloat(p.latitude)) &&
+              !isNaN(parseFloat(p.longitude)) &&
+              typeof p.unique_id === "string"
+          );
 
-          setGpsData({ latitude, longitude });
-          setGps({ latitude: parseFloat(latitude), longitude: parseFloat(longitude) });
-          setUserId(unique_id);
+          if (validPackets.length > 0) {
+            const latest = validPackets[validPackets.length - 1];
+            const { latitude, longitude, unique_id } = latest;
 
-          const ids = [...new Set(packets.map(p => p.unique_id))];
-          setConnectedUsers(ids);
+            setGpsData({ latitude, longitude });
+            setGps({
+              latitude: parseFloat(latitude),
+              longitude: parseFloat(longitude),
+            });
+            setUserId(unique_id);
 
-          // If data is available, set status to operational
-          setStatus("operational");
+            const ids = [...new Set(validPackets.map((p) => p.unique_id))];
+            setConnectedUsers(ids);
+
+            setStatus("operational");
+          } else {
+            console.warn("Dropped invalid packets:", packets);
+            setStatus("empty");
+          }
         } else {
-          setStatus("empty"); // If no data, set status to empty
+          setStatus("empty");
         }
       } catch (error) {
         setGpsData({ error: "❌ Unable to fetch data" });
         console.log(error);
         setUserId(null);
         setConnectedUsers([]);
-        
+
         // Set status to down if unable to fetch data
         setStatus("down");
       }
