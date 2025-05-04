@@ -28,7 +28,7 @@ const Home2 = () => {
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [status, setStatus] = useState("loading"); // Status: loading, operational, empty, down
+  const [status, setStatus] = useState("loading"); // loading, operational, empty, down
   const [ipAddress, setIpAddress] = useState(
     () => localStorage.getItem("esp32_ip") || "192.168.0.1"
   );
@@ -43,31 +43,23 @@ const Home2 = () => {
   const getStatusStyles = () => {
     switch (status) {
       case "down":
-        return {
-          bgColor: "bg-red-500",
-          textColor: "text-white",
-        };
+        return { bgColor: "bg-red-500", textColor: "text-white" };
       case "operational":
-        return {
-          bgColor: "bg-green-500",
-          textColor: "text-white",
-        };
+        return { bgColor: "bg-green-500", textColor: "text-white" };
       case "empty":
-        return {
-          bgColor: "bg-yellow-500",
-          textColor: "text-black",
-        };
+        return { bgColor: "bg-yellow-500", textColor: "text-black" };
       default:
-        return {
-          bgColor: "bg-gray-500",
-          textColor: "text-white",
-        };
+        return { bgColor: "bg-gray-500", textColor: "text-white" };
     }
   };
 
   const { bgColor, textColor } = getStatusStyles();
 
   if (loading) return <Loader />;
+
+  const validURL = ipAddress.startsWith("http")
+    ? ipAddress
+    : `http://${ipAddress}`;
 
   return (
     <div className="flex w-full min-h-screen bg-white text-black font-sans transition-all duration-300">
@@ -90,33 +82,41 @@ const Home2 = () => {
         className="flex-1 flex flex-col overflow-hidden p-4"
         style={perspectiveStyle}
       >
-        <a href={`http://${ipAddress}/data`} target="_blank" rel="noopener noreferrer">
           <section
-            className={`${bgColor} p-6 text-center text-xl font-bold ${textColor} shadow-xl mb-6 rounded-2xl transform transition-transform duration-500 hover:scale-102 hover:shadow-2xl animate-fadeIn`}
+            className={`${bgColor} p-6 text-center text-xl font-bold ${textColor} shadow-xl mb-6 rounded-2xl transform transition-transform duration-500 hover:scale-102 hover:shadow-2xl animate-fadeIn  border-l-4 border-r-4 border-black`}
           >
+            <a href={`${validURL}/data`} target="_blank" rel="noopener noreferrer">
             {status === "loading"
               ? "Loading system status..."
               : status === "down"
               ? "⚠️ System Down. Unable to Fetch Data."
               : status === "empty"
-              ? "☑️ System Operational. No SOS Recieved Yet"
-              : "✅ System Operational. GPS tracking active."}
+              ? "☑️ System Operational. No SOS Received Yet"
+              : "✅ System Operational. SOS Recieved"}
+            </a>
           </section>
-        </a>
+        
 
         <div className="flex flex-1 overflow-hidden gap-4">
+          {/* LEFT PANEL */}
           <section className="flex-1 flex flex-col space-y-6 overflow-auto">
             <div className="flex gap-6" style={perspectiveStyle}>
-              <div className="bg-white p-6 rounded-2xl flex items-center gap-6 shadow-xl border-l-4 border-red-500 transform transition-transform duration-500 hover:rotate-y-3 hover:rotate-x-1 hover:shadow-2xl animate-float">
+              <div className="bg-white p-6 rounded-2xl flex items-center gap-6 shadow-xl border-l-4 border-r-4 border-red-500 transform transition-transform duration-500 hover:scale-102 hover:shadow-2xl animate-float">
                 <FaMapMarkerAlt
-                  className={[
-                    "text-4xl",
-                    gps.latitude ? "text-green-500" : "text-red-500",
-                    "animate-pulse",
-                  ].join(" ")}
+                  className={`text-4xl ${
+                    gps.latitude && gps.latitude !== "No Fix"
+                      ? "text-green-500"
+                      : gps.latitude === "No Fix"
+                      ? "text-yellow-500"
+                      : "text-red-500"
+                  } animate-pulse`}
                 />
-                <span className="text-2xl font-semibold text-red-500 drop-shadow-md">
-                  {gps.latitude ? "GPS Connected" : "GPS Not Connected"}
+                <span className="text-2xl font-semibold drop-shadow-md text-black">
+                  {gps.latitude && gps.latitude !== "No Fix"
+                    ? "✅ GPS Connected"
+                    : gps.latitude === "No Fix"
+                    ? "📡 GPS Fix Pending..."
+                    : "❌ GPS Not Connected"}
                 </span>
               </div>
 
@@ -126,7 +126,7 @@ const Home2 = () => {
                   setUserId={setUserId}
                   setConnectedUsers={setConnectedUsers}
                   ipAddress={ipAddress}
-                  setStatus={setStatus} // Passing setStatus to update the status
+                  setStatus={setStatus}
                 />
               </div>
             </div>
@@ -145,6 +145,7 @@ const Home2 = () => {
             </div>
           </section>
 
+          {/* RIGHT SIDEBAR */}
           <aside
             className="w-64 bg-gradient-to-b from-gray-900 to-red-700 p-6 shadow-xl space-y-6 max-h-screen overflow-y-auto transform transition-transform duration-500 hover:rotate-y-1 hover:shadow-2xl rounded-2xl animate-fadeIn"
             style={perspectiveStyle}
@@ -157,10 +158,19 @@ const Home2 = () => {
                 connectedUsers.map((user) => (
                   <li
                     key={user}
-                    className="text-white hover:text-red-400 cursor-pointer"
+                    className={`px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      selectedUser === user
+                        ? "bg-red-500 text-white"
+                        : "text-white hover:text-red-400 hover:bg-red-800"
+                    }`}
                     onClick={() => setSelectedUser(user)}
                   >
                     {user}
+                    {user === userId && !gps.latitude && (
+                      <span className="text-yellow-300 text-sm ml-2">
+                        (No GPS yet)
+                      </span>
+                    )}
                   </li>
                 ))
               ) : (

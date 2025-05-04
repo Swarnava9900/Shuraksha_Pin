@@ -1,87 +1,76 @@
-import React, { useState, useEffect } from "react";
+/* eslint-disable no-unused-vars */
+import { useEffect } from "react";
 import axios from "axios";
 
 const GPSData = ({
   setGps,
   setUserId,
-  ipAddress,
   setConnectedUsers,
+  ipAddress,
   setStatus,
 }) => {
-  const [gpsData, setGpsData] = useState({
-    latitude: null,
-    longitude: null,
-    error: null,
-  });
+  const isNumeric = (val) => !isNaN(parseFloat(val)) && isFinite(val);
 
   useEffect(() => {
-    const fetchGPS = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get(`http://${ipAddress}/data`);
-        const packets = res.data;
+        const url = ipAddress.startsWith("http")
+          ? `${ipAddress}/data`
+          : `http://${ipAddress}/data`;
 
-        if (Array.isArray(packets) && packets.length > 0) {
-          const validPackets = packets.filter(
-            (p) =>
-              p &&
-              typeof p.latitude === "string" &&
-              typeof p.longitude === "string" &&
-              !isNaN(parseFloat(p.latitude)) &&
-              !isNaN(parseFloat(p.longitude)) &&
-              typeof p.unique_id === "string"
-          );
+        const response = await axios.get(url);
+        const data = response.data;
 
-          if (validPackets.length > 0) {
-            const latest = validPackets[validPackets.length - 1];
-            const { latitude, longitude, unique_id } = latest;
-
-            setGpsData({ latitude, longitude });
-            setGps({
-              latitude: parseFloat(latitude),
-              longitude: parseFloat(longitude),
-            });
-            setUserId(unique_id);
-
-            const ids = [...new Set(validPackets.map((p) => p.unique_id))];
-            setConnectedUsers(ids);
-
-            setStatus("operational");
-          } else {
-            console.warn("Dropped invalid packets:", packets);
-            setStatus("empty");
-          }
-        } else {
+        if (!Array.isArray(data) || data.length === 0) {
           setStatus("empty");
+          return;
         }
-      } catch (error) {
-        setGpsData({ error: "❌ Unable to fetch data" });
-        console.log(error);
-        setUserId(null);
-        setConnectedUsers([]);
 
-        // Set status to down if unable to fetch data
+        // Updated key references (assuming your JSON format)
+        const validEntries = data.filter((entry) => entry && entry.unique_id);
+
+        if (validEntries.length === 0) {
+          setStatus("empty");
+          return;
+        }
+
+        const lastEntry = validEntries[validEntries.length - 1];
+        setUserId(lastEntry.unique_id);
+
+        const lat = lastEntry.latitude;
+        const lon = lastEntry.longitude;
+
+        if (isNumeric(lat) && isNumeric(lon)) {
+          setGps({ latitude: parseFloat(lat), longitude: parseFloat(lon) });
+        } else if (
+          lat === "No Fix" ||
+          lon === "No Fix" ||
+          !lat ||
+          !lon
+        ) {
+          setGps({ latitude: "No Fix", longitude: "No Fix" });
+        } else {
+          setGps({ latitude: null, longitude: null });
+        }
+
+        const uniqueUserIds = [
+          ...new Set(validEntries.map((entry) => entry.unique_id)),
+        ];
+        setConnectedUsers(uniqueUserIds);
+
+        setStatus("operational");
+      } catch (error) {
+        console.error("Failed to fetch GPS data:", error);
         setStatus("down");
       }
     };
 
-    fetchGPS();
-    const interval = setInterval(fetchGPS, 5000);
+    fetchData();
+    const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
-  }, [setGps, setUserId, ipAddress, setConnectedUsers, setStatus]);
+  }, [ipAddress]);
 
-  return (
-    <div>
-      <h2 className="text-xl font-bold">GPS Data</h2>
-      {gpsData.error ? (
-        <p className="text-red-400">{gpsData.error}</p>
-      ) : (
-        <div>
-          <p>Latitude: {gpsData.latitude || "..."}</p>
-          <p>Longitude: {gpsData.longitude || "..."}</p>
-        </div>
-      )}
-    </div>
-  );
+  return null;
 };
 
 export default GPSData;
